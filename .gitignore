@@ -1,0 +1,11 @@
+.vercel
+
+# Personal home location — see config.example.js
+config.js
+
+# Large raw source exports (citywide, re-downloadable from DataSF/SFMTA open data)
+Parking regulations (except non-metered color curb).geojson
+Street_Sweeping_Schedule_*.csv
+Parking_Meters_*.csv
+
+.DS_Store

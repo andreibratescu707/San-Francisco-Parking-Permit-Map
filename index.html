@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewer-fit=cover" />
+  <title>Oak &amp; Panhandle Parking Map</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="map"></div>
+
+  <header id="app-header">
+    <h1>🅿️ Oak &amp; Panhandle</h1>
+    <p>Where to park without a permit, when the sweeper comes, and what to watch out for.</p>
+  </header>
+
+  <button id="legend-toggle" aria-expanded="false" aria-label="Legend and layers">
+    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+  </button>
+
+  <div id="legend-sheet">
+    <div class="legend-sheet-head">
+      <span>Legend &amp; layers</span>
+      <button id="legend-close" aria-label="Close legend">&times;</button>
+    </div>
+    <div class="legend-scroll">
+
+      <section class="layer-group" data-layer="permit">
+        <label class="layer-head">
+          <span class="switch">
+            <input type="checkbox" id="toggle-permit" checked />
+            <span class="slider"></span>
+          </span>
+          <span class="layer-title">
+            <strong>No-permit parking</strong>
+            <span>Streets you can legally park on without an RPP sticker</span>
+          </span>
+        </label>
+        <ul class="swatches">
+          <li><span class="swatch" style="background:#0072B2"></span> No permit zone &mdash; safe to park</li>
+          <li><span class="swatch" style="background:#E69F00"></span> Permit zone (letter shown) &mdash; time-limited without a permit</li>
+        </ul>
+      </section>
+
+      <section class="layer-group" data-layer="sweeping">
+        <label class="layer-head">
+          <span class="switch">
+            <input type="checkbox" id="toggle-sweeping" checked />
+            <span class="slider"></span>
+          </span>
+          <span class="layer-title">
+            <strong>Street sweeping</strong>
+            <span>Move your car or get swept</span>
+          </span>
+        </label>
+        <ul class="swatches" id="sweeping-swatches"></ul>
+      </section>
+
+      <section class="layer-group" data-layer="restrictions">
+        <label class="layer-head">
+          <span class="switch">
+            <input type="checkbox" id="toggle-restrictions" checked />
+            <span class="slider"></span>
+          </span>
+          <span class="layer-title">
+            <strong>Restrictions</strong>
+            <span>Meters, no-parking, and permit-only spots</span>
+          </span>
+        </label>
+        <ul class="swatches">
+          <li><span class="swatch" style="background:#E69F00"></span> Metered parking (small dots, tap for the block)</li>
+          <li><span class="swatch" style="background:#E69F00"></span> No parking any time / government permit only / no overnight &mdash; bold lines/larger dots (rare nearby &mdash; pan around to find one)</li>
+        </ul>
+      </section>
+
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
