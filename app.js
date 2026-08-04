@@ -271,25 +271,49 @@ fetch("data/parking_meters.geojson")
 fetch("data/street_sweeping.geojson")
   .then((r) => r.json())
   .then((geojson) => {
-    sweepingLayer = L.geoJSON(geojson, {
+    const bindSweepingPopup = (feature, layer) => {
+      const p = feature.properties;
+      const dayLabel = WEEKDAY_LABELS[p.WeekDay] || p.WeekDay || "—";
+      const html = `
+        <span class="popup-title">🧹 ${p.Corridor || ""}</span>
+        <div class="popup-row">${p.Limits || ""}</div>
+        <div class="popup-row"><b>${dayLabel}</b> ${fmtHour(p.FromHour)}–${fmtHour(p.ToHour)}, ${weekPattern(p)}</div>
+      `;
+      layer.bindPopup(html);
+    };
+
+    // The visible line is thin and sparsely dashed ("1 8"), which is nearly
+    // impossible to hit with a finger on mobile — a dashed stroke's tap target is
+    // only the painted dashes, not the gaps. So there's a separate, wider, fully
+    // solid but invisible line underneath just to catch taps; the dashed line on
+    // top is purely decorative (non-interactive) so it doesn't shadow the hit layer.
+    const sweepingHitLayer = L.geoJSON(geojson, {
+      // Fully-transparent (opacity 0) strokes fail hit-testing in some browsers even
+      // with pointer-events set — near-zero but nonzero keeps it invisible while
+      // staying reliably tappable everywhere.
+      style: () => ({ color: "#000", weight: 20, opacity: 0.02 }),
+      onEachFeature: bindSweepingPopup,
+    });
+
+    const sweepingVisibleLayer = L.geoJSON(geojson, {
+      interactive: false,
       style: (feature) => ({
         color: WEEKDAY_COLORS[feature.properties.WeekDay] || "#94a3b8",
         weight: 4,
         opacity: 0.85,
         dashArray: "1 8",
         lineCap: "round",
+        // `interactive: false` only stops Leaflet from attaching its own click
+        // handler — the path is still visibly painted, so by default SVG hit-tests
+        // it anyway and it can silently swallow clicks meant for the hit layer
+        // beneath it. Force it out of hit-testing entirely.
+        className: "sweeping-decorative",
       }),
-      onEachFeature: (feature, layer) => {
-        const p = feature.properties;
-        const dayLabel = WEEKDAY_LABELS[p.WeekDay] || p.WeekDay || "—";
-        const html = `
-          <span class="popup-title">🧹 ${p.Corridor || ""}</span>
-          <div class="popup-row">${p.Limits || ""}</div>
-          <div class="popup-row"><b>${dayLabel}</b> ${fmtHour(p.FromHour)}–${fmtHour(p.ToHour)}, ${weekPattern(p)}</div>
-        `;
-        layer.bindPopup(html);
-      },
-    }).addTo(map);
+    });
+
+    // Add the decorative line first, hit layer second, so the (invisible but
+    // interactive) hit layer ends up on top in the SVG and always receives the click.
+    sweepingLayer = L.layerGroup([sweepingVisibleLayer, sweepingHitLayer]).addTo(map);
 
     buildSweepingLegend();
   })

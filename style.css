@@ -69,6 +69,12 @@ html, body {
   line-height: 36px;
 }
 
+/* Purely decorative path — never intercept clicks meant for the invisible hit-layer
+   underneath it (see app.js sweepingVisibleLayer). */
+.sweeping-decorative {
+  pointer-events: none;
+}
+
 /* Leaflet popup polish */
 .leaflet-popup-content-wrapper {
   border-radius: 12px;
