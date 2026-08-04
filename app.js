@@ -358,7 +358,12 @@ function setLegendOpen(open) {
 }
 
 legendToggle.addEventListener("click", () => {
-  setLegendOpen(!legendSheet.classList.contains("open"));
+  const opening = !legendSheet.classList.contains("open");
+  setLegendOpen(opening);
+  // The two panels would overlap on a phone-width screen — only one open at a time.
+  // (setSearchOpen is defined further down, but this only runs on click, well after
+  // the whole script has loaded, so the forward reference is safe.)
+  if (opening) setSearchOpen(false);
 });
 legendClose.addEventListener("click", () => setLegendOpen(false));
 
@@ -371,3 +376,95 @@ function syncLegendForViewport() {
 }
 syncLegendForViewport();
 window.addEventListener("resize", syncLegendForViewport);
+
+// --- Search (street / address) ---------------------------------------------
+// Keep in sync with the bounding box in scripts/prepare_data.py.
+const SEARCH_BBOX = { latMin: 37.76, latMax: 37.784, lonMin: -122.459, lonMax: -122.429 };
+// Nominatim viewbox is "left,top,right,bottom" = lonMin,latMax,lonMax,latMin.
+const SEARCH_VIEWBOX = `${SEARCH_BBOX.lonMin},${SEARCH_BBOX.latMax},${SEARCH_BBOX.lonMax},${SEARCH_BBOX.latMin}`;
+
+const searchToggle = document.getElementById("search-toggle");
+const searchPanel = document.getElementById("search-panel");
+const searchForm = document.getElementById("search-form");
+const searchInput = document.getElementById("search-input");
+const searchResultsEl = document.getElementById("search-results");
+let searchMarker = null;
+
+function setSearchOpen(open) {
+  searchPanel.classList.toggle("open", open);
+  searchToggle.setAttribute("aria-expanded", String(open));
+  if (open) {
+    setLegendOpen(false); // the two panels would overlap on a phone-width screen
+    setTimeout(() => searchInput.focus(), 50);
+  }
+}
+
+searchToggle.addEventListener("click", () => {
+  setSearchOpen(!searchPanel.classList.contains("open"));
+});
+
+function renderSearchStatus(text) {
+  searchResultsEl.innerHTML = "";
+  const li = document.createElement("li");
+  li.className = "search-status";
+  li.textContent = text;
+  searchResultsEl.appendChild(li);
+}
+
+function renderSearchResults(results) {
+  if (!results.length) {
+    renderSearchStatus("No results found nearby — try a different spelling.");
+    return;
+  }
+  searchResultsEl.innerHTML = "";
+  results.forEach((r) => {
+    const parts = (r.display_name || "").split(",").map((s) => s.trim());
+    const main = parts[0] || r.display_name;
+    const sub = parts.slice(1, 3).join(", ");
+    const li = document.createElement("li");
+    li.innerHTML = `${main}<span class="search-result-sub">${sub}</span>`;
+    li.addEventListener("click", () => selectSearchResult(r));
+    searchResultsEl.appendChild(li);
+  });
+}
+
+function selectSearchResult(result) {
+  const lat = parseFloat(result.lat);
+  const lon = parseFloat(result.lon);
+  map.setView([lat, lon], 18);
+
+  if (searchMarker) map.removeLayer(searchMarker);
+  const icon = L.divIcon({
+    className: "",
+    html: '<div class="search-marker"><div class="dot"></div></div>',
+    iconSize: [18, 18],
+    iconAnchor: [9, 9],
+  });
+  const label = (result.display_name || "").split(",").slice(0, 3).join(",");
+  searchMarker = L.marker([lat, lon], { icon })
+    .addTo(map)
+    .bindPopup(`<span class="popup-title">📍 ${label}</span>`)
+    .openPopup();
+
+  setSearchOpen(false);
+}
+
+searchForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const query = searchInput.value.trim();
+  if (!query) return;
+
+  renderSearchStatus("Searching…");
+  try {
+    const url =
+      `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&bounded=1` +
+      `&viewbox=${SEARCH_VIEWBOX}&q=${encodeURIComponent(query)}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`Nominatim returned ${res.status}`);
+    const data = await res.json();
+    renderSearchResults(data);
+  } catch (err) {
+    console.error("Search failed", err);
+    renderSearchStatus("Search failed — check your connection and try again.");
+  }
+});
