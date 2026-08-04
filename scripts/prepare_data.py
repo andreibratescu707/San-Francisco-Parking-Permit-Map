@@ -7,6 +7,7 @@ Run from the project root:
 """
 import csv
 import json
+import math
 import re
 from pathlib import Path
 
@@ -156,6 +157,31 @@ def parse_wkt_linestring(wkt):
     return {"type": "LineString", "coordinates": coords}
 
 
+# The sweeping export gives both sides of a block the exact same centerline geometry —
+# BlockSide is just a text field, not reflected in the coordinates — so two sides with
+# different sweep days would otherwise draw directly on top of each other and one would
+# hide the other. Nudge each side a few meters toward its named compass direction so
+# both render as visibly separate lines, like a real curb-offset would look.
+COMPASS_OFFSET = {
+    "North": (0, 1), "South": (0, -1), "East": (1, 0), "West": (-1, 0),
+    "NorthEast": (0.7071, 0.7071), "NorthWest": (-0.7071, 0.7071),
+    "SouthEast": (0.7071, -0.7071), "SouthWest": (-0.7071, -0.7071),
+}
+SWEEPING_SIDE_OFFSET_M = 3.5
+
+
+def offset_geometry(geom, block_side, lat_for_scale):
+    dx, dy = COMPASS_OFFSET.get(block_side, (0, 0))
+    if dx == 0 and dy == 0:
+        return geom
+    dlat = SWEEPING_SIDE_OFFSET_M * dy / METERS_PER_DEG
+    dlon = SWEEPING_SIDE_OFFSET_M * dx / (METERS_PER_DEG * math.cos(math.radians(lat_for_scale)))
+    return {
+        "type": "LineString",
+        "coordinates": [[lon + dlon, lat + dlat] for lon, lat in geom["coordinates"]],
+    }
+
+
 def prepare_sweeping():
     keep_cols = [
         "Corridor", "Limits", "BlockSide", "WeekDay", "FromHour", "ToHour",
@@ -171,10 +197,13 @@ def prepare_sweeping():
             geom = parse_wkt_linestring(row.get("Line", ""))
             if not geom or not geometry_in_bbox(geom):
                 continue
+            block_side = row.get("BlockSide", "")
+            avg_lat = sum(pt[1] for pt in geom["coordinates"]) / len(geom["coordinates"])
+            offset_geom = offset_geometry(geom, block_side, avg_lat)
             props = {k: row.get(k) for k in keep_cols}
             out_features.append({
                 "type": "Feature",
-                "geometry": geom,
+                "geometry": offset_geom,
                 "properties": props,
             })
 
