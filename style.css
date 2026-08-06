@@ -365,6 +365,58 @@ html, body {
   box-shadow: 0 2px 6px rgba(15, 23, 42, 0.4);
 }
 
+/* "You are here" marker (device geolocation) */
+.locate-marker {
+  position: relative;
+  width: 18px;
+  height: 18px;
+}
+
+.locate-marker .dot {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #3b82f6;
+  border: 2.5px solid #fff;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.15);
+  z-index: 2;
+}
+
+.locate-marker .pulse {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: #3b82f6;
+  opacity: 0.55;
+  animation: pulse 2.2s cubic-bezier(0.2, 0.6, 0.4, 1) infinite;
+}
+
+/* Locate-me toggle: round button above the zoom control, bottom-right */
+#locate-toggle {
+  position: absolute;
+  right: max(14px, env(safe-area-inset-right));
+  bottom: calc(max(14px, env(safe-area-inset-bottom)) + 92px);
+  z-index: 600;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 50%;
+  background: var(--panel);
+  color: var(--panel-text);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.3);
+}
+
+#locate-toggle[aria-pressed="true"] {
+  background: #3b82f6;
+  color: #fff;
+}
+
 #legend-close {
   width: 36px;
   height: 36px;

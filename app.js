@@ -468,3 +468,90 @@ searchForm.addEventListener("submit", async (e) => {
     renderSearchStatus("Search failed — check your connection and try again.");
   }
 });
+
+// --- "You are here" (device geolocation) -----------------------------------
+const locateToggle = document.getElementById("locate-toggle");
+let locateWatchId = null;
+let locateMarker = null;
+let locateAccuracyCircle = null;
+let locateFollowing = false; // re-center on the next fix only, then leave the user free to pan
+
+function stopLocate() {
+  if (locateWatchId !== null) {
+    navigator.geolocation.clearWatch(locateWatchId);
+    locateWatchId = null;
+  }
+  if (locateMarker) {
+    map.removeLayer(locateMarker);
+    locateMarker = null;
+  }
+  if (locateAccuracyCircle) {
+    map.removeLayer(locateAccuracyCircle);
+    locateAccuracyCircle = null;
+  }
+  locateToggle.setAttribute("aria-pressed", "false");
+}
+
+function startLocate() {
+  if (!navigator.geolocation) {
+    alert("Geolocation isn't supported by this browser.");
+    return;
+  }
+
+  locateToggle.setAttribute("aria-pressed", "true");
+  locateFollowing = true;
+
+  locateWatchId = navigator.geolocation.watchPosition(
+    (pos) => {
+      const latlng = [pos.coords.latitude, pos.coords.longitude];
+      const accuracy = pos.coords.accuracy || 0;
+
+      if (!locateMarker) {
+        const icon = L.divIcon({
+          className: "",
+          html: '<div class="locate-marker"><div class="pulse"></div><div class="dot"></div></div>',
+          iconSize: [18, 18],
+          iconAnchor: [9, 9],
+        });
+        locateMarker = L.marker(latlng, { icon, zIndexOffset: 1000, interactive: false }).addTo(map);
+        locateAccuracyCircle = L.circle(latlng, {
+          radius: accuracy,
+          color: "#3b82f6",
+          weight: 1,
+          fillColor: "#3b82f6",
+          fillOpacity: 0.12,
+          interactive: false,
+        }).addTo(map);
+      } else {
+        locateMarker.setLatLng(latlng);
+        locateAccuracyCircle.setLatLng(latlng);
+        locateAccuracyCircle.setRadius(accuracy);
+      }
+
+      // Only auto-recenter on the fix right after tapping the button — after that,
+      // the dot keeps updating live but stays out of the way of manual panning.
+      if (locateFollowing) {
+        map.setView(latlng, Math.max(map.getZoom(), 17));
+        locateFollowing = false;
+      }
+    },
+    (err) => {
+      console.error("Geolocation error", err);
+      const message =
+        err.code === err.PERMISSION_DENIED
+          ? "Location permission was denied — enable it in your browser/OS settings to use this."
+          : "Couldn't get your location. Try again in a bit.";
+      alert(message);
+      stopLocate();
+    },
+    { enableHighAccuracy: true, maximumAge: 10000, timeout: 15000 }
+  );
+}
+
+locateToggle.addEventListener("click", () => {
+  if (locateWatchId !== null) {
+    stopLocate();
+  } else {
+    startLocate();
+  }
+});
