@@ -68,12 +68,14 @@ const map = L.map("map", {
 
 L.control.zoom({ position: "bottomright" }).addTo(map);
 
+// Esri's light-gray canvas. CARTO's basemaps started requiring an API key and
+// stamped "API KEY REQUIRED" across every tile. This one needs no key; it has
+// native tiles to z16, so deeper zooms upscale them instead of going blank.
 L.tileLayer(
-  "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+  "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}",
   {
-    attribution:
-      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-    subdomains: "abcd",
+    attribution: "Tiles &copy; Esri &mdash; Esri, HERE, Garmin, &copy; OpenStreetMap contributors",
+    maxNativeZoom: 16,
     maxZoom: 20,
   }
 ).addTo(map);
